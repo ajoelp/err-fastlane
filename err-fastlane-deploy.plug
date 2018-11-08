@@ -1,0 +1,10 @@
+[Core]
+name = fastlane
+module = fastlane
+
+[Documentation]
+description = Deploy fastlane builds through errbot
+
+[Python]
+version = 3
+

@@ -68,6 +68,40 @@ class Fastlane(BotPlugin):
 
     @arg_botcmd('--project-name', dest='project_name', type=str.lower, required=True)
     @arg_botcmd('--branch-name', dest='branch_name', type=str, required=True)
+    def fastlane_env(self,
+            message,
+            project_name: str,
+            branch_name: str,
+    ) -> str:
+        """
+        run the fastlane command
+        """
+        self._bot.add_reaction(message, "hourglass")
+        try:
+            project_root = self.get_project_root(project_name)
+            self.fetch_branch_from_origin(project_root, branch_name)
+            fastlane_parent_directory = self.find_fastlane_directory(project_root)
+            self.install_bundle(fastlane_parent_directory)
+            completed_process = self.check_fastlane_env(fastlane_parent_directory)
+            self._bot.remove_reaction(message, "hourglass")
+            self._bot.add_reaction(message, "white_check_mark")
+            return self.send_stream_request(
+                    message.frm,
+                    io.BytesIO(str.encode(completed_process.stdout)),
+                    name='response-env.txt',
+                )
+        except subprocess.CalledProcessError as e:
+            self._bot.remove_reaction(message, "hourglass")
+            self._bot.add_reaction(message, "x")
+            self.log.exception(e.output)
+            self.send_stream_request(
+                    message.frm,
+                    io.BytesIO(str.encode(e.output)),
+                    name='error-env.txt',
+                )
+
+    @arg_botcmd('--project-name', dest='project_name', type=str.lower, required=True)
+    @arg_botcmd('--branch-name', dest='branch_name', type=str, required=True)
     @arg_botcmd('--environment', dest='environment', type=str, required=True)
     def fastlane(self,
             message,
@@ -121,6 +155,14 @@ class Fastlane(BotPlugin):
         """Fetch develop from git origin."""
         return Fastlane.run_subprocess(
                 ['fastlane', 'deploy'],
+                cwd=project_root,
+            )
+            
+    @staticmethod
+    def check_fastlane_env(project_root):
+        """Fetch develop from git origin."""
+        return Fastlane.run_subprocess(
+                ['fastlane', 'env'],
                 cwd=project_root,
             )
 
